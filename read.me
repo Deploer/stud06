@@ -1,1 +1,6 @@
 #домашнее задание N6
+# Сборка образа
+docker build -t my-tomcat-app:latest .
+
+# Запуск контейнера
+docker run -d -p 8080:8080 --name my-tomcat-app my-tomcat-app:latest
