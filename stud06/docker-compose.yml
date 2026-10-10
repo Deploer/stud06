@@ -6,7 +6,7 @@ services:
     working_dir: /workspace
     volumes:
       - .:/workspace
-    command: mvn clean package -DskipTests
+    command: mvn package -DskipTests
 
   tomcat:
     image: tomcat:9.0-jre8-alpine
@@ -16,6 +16,6 @@ services:
       - '8080:8080'
     volumes:
       - ./target:/usr/local/tomcat/webapps
-    command: >
-      sh -c "cp /usr/local/tomcat/webapps/*.war /usr/local/tomcat/webapps/ROOT.war && catalina.sh run"
+    entrypoint: >
+      bash -c "cp /usr/local/tomcat/webapps/*.war /usr/local/tomcat/webapps/ROOT.war && catalina.sh run"
 
