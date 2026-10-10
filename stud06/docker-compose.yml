@@ -2,8 +2,7 @@
 version: '3'
 services:
     maven:
-        build:
-            image: maven:3.9.6-eclipse-temurin-20-alpine
+        image: maven:3.9.6-eclipse-temurin-20-alpine
         volumes:
             - './app:/app'
     tomcat:
