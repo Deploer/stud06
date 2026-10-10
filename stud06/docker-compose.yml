@@ -1,17 +1,21 @@
----
 version: '3'
+
 services:
-    maven:
-        image: maven:3.9.6-eclipse-temurin-20-alpine
-        volumes:
-            - './app:/app'
-    tomcat:
-        image: tomcat:10.1.27-jdk20-temurin-focal
-        restart: 'on-failure'
-        depends_on:
-            - maven
-        ports:
-            - '8080:8080'
-        volumes:
-            - './app:/usr/local/tomcat/webapps'
-                
+  maven:
+    image: maven:3.9.6-eclipse-temurin-17-alpine
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command: mvn package -DskipTests
+
+  tomcat:
+    image: tomcat:9-jre8-temurin-jammy
+    depends_on:
+      - maven
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./target:/usr/local/tomcat/webapps
+    command: >
+      bash -c "cp /usr/local/tomcat/webapps/*.war /usr/local/tomcat/webapps/ROOT.war && catalina.sh run"
+
