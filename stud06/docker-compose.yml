@@ -1,21 +1,21 @@
 version: '3'
 
 services:
-  maven:
+  builder:
     image: maven:3.9.6-eclipse-temurin-17-alpine
     working_dir: /workspace
     volumes:
       - .:/workspace
-    command: mvn package -DskipTests
+    command: mvn clean package -DskipTests
 
   tomcat:
-    image: tomcat:9-jre8-temurin-jammy
+    image: tomcat:9.0-jre8-alpine
     depends_on:
-      - maven
+      - builder
     ports:
       - '8080:8080'
     volumes:
       - ./target:/usr/local/tomcat/webapps
     command: >
-      bash -c "cp /usr/local/tomcat/webapps/*.war /usr/local/tomcat/webapps/ROOT.war && catalina.sh run"
+      sh -c "cp /usr/local/tomcat/webapps/*.war /usr/local/tomcat/webapps/ROOT.war && catalina.sh run"
 
