@@ -46,6 +46,13 @@
     command:
       cmd: mvn package -DskipTests
       chdir: /tmp/stud06/stud08
+  - name: Ensure Tomcat webapps directory exists
+    file:
+      path: /var/lib/tomcat9/webapps
+      state: directory
+      owner: tomcat9
+      group: tomcat9
+      mode: '0755'
   - name: Copy WAR file
     copy:
       src: /tmp/stud06/stud08/target/chess-1.0.war
