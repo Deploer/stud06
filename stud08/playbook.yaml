@@ -48,10 +48,10 @@
       repo: 'https://github.com/Deploer/stud06.git'
       dest: /tmp/stud06
   - name: Build the application
-    command: mvn package -DskipTests
-    chdir: /tmp/stud06
+    command:
+      cmd: mvn package -DskipTests
+      chdir: /tmp/stud06
   - name: Copy WAR file 
     copy:
       src: /tmp/stud06/target/*.war
       dest: /usr/local/tomcat/webapps/ROOT.war
-
