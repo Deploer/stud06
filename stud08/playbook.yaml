@@ -24,11 +24,6 @@
     apt:
       name: openjdk-11-jre
       state: present
-  - name: Ensure openjdk-11-jre is started and enabled
-    service:
-      name: openjdk-11-jre
-      state: started
-      enabled: true
   - name: Ensure tomcat9 package is present
     apt:
       name: tomcat9
