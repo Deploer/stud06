@@ -45,8 +45,9 @@
   - name: Build the application
     command:
       cmd: mvn package -DskipTests
-      chdir: /tmp/stud06
-  - name: Copy WAR file 
+      chdir: /tmp/stud06/stud08
+  - name: Copy WAR file
     copy:
-      src: /tmp/stud06/target/*.war
-      dest: /usr/local/tomcat/webapps/ROOT.war
+      src: /tmp/stud06/stud08/target/chess-1.0.war
+      dest: /var/lib/tomcat9/webapps/ROOT.war
+      remote_src: true
