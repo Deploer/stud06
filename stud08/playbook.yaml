@@ -1,5 +1,5 @@
 ---
-- name: setup maven
+- name: setup packages
   hosts: web
   become: true
   tasks:
@@ -38,4 +38,20 @@
       name: tomcat9
       state: started
       enabled: true 
+
+- name: build and deploy application
+  hosts: web
+  become: true
+  tasks:
+  - name: Clone git repository
+    git:
+      repo: 'https://github.com/Deploer/stud06.git'
+      dest: /home/user/stud06
+  - name: Build the application
+    command: mvn package -DskipTests
+    chdir: /home/user/stud06
+  - name: Copy WAR file 
+    copy:
+      src: /home/user/stud06/target/*.war
+      dest: /usr/local/tomcat/webapps/ROOT.war
 
