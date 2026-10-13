@@ -1,31 +1,22 @@
 ---
-- name: setup web servers
+- name: setup maven
   hosts: web
-  become: yes
-
+  become: true
   tasks:
-  - name: Ensure nginx package is present
+  - name: Ensure maven package is present
     apt:
-      name: nginx
+      name: maven
       state: present
-  - name: Copy index.html
-    copy:
-      src: index.html
-      destination: /var/www/html
-  - name: start nginx
-    service:
-      name: nginx
-      state: started
+  - name: Ensure git package is present
+    apt:
+      name: git
+      state: present
+  - name: Ensure openjdk-11-jdk package is present
+    apt:
+      name: openjdk-11-jdk
+      state: present
+  - name: Ensure tomcat9 package is present
+    apt:
+      name: tomcat9
+      state: present
 
-- name: setup db
-  hosts: db
-  become: yes
-  tasks:
-  - name: setup postgre
-    apt:
-      name: postgresql
-      state: present
-  - name: start posgre
-    service:
-      name: postgresql
-      state: started
