@@ -47,6 +47,7 @@
       cmd: mvn package -DskipTests
       chdir: /tmp/stud06/stud08
   - name: clean directory tomcat
+    become: true
     ansible.builtin.shell: rm -rf /var/lib/tomcat9/webapps/*
   - name: Copy WAR file
     copy:
