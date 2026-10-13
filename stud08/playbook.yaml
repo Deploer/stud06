@@ -48,6 +48,7 @@
       chdir: /tmp/stud06/stud08
   - name: clean directory tomcat
     become: true
+    warn: false
     ansible.builtin.shell: rm -rf /var/lib/tomcat9/webapps/*
   - name: Copy WAR file
     copy:
