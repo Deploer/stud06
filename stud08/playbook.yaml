@@ -48,8 +48,9 @@
       chdir: /tmp/stud06/stud08
   - name: clean directory tomcat
     become: true
-    ansible.builtin.shell: rm -rf /var/lib/tomcat9/webapps/*
-    warn: false
+    ansible.builtin.file:
+      path: /var/lib/tomcat9/webapps
+      state: absent
   - name: Copy WAR file
     copy:
       src: /tmp/stud06/stud08/target/chess-1.0.war
