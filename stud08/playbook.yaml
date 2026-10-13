@@ -11,12 +11,31 @@
     apt:
       name: git
       state: present
-  - name: Ensure openjdk-11-jdk package is present
+  - name: Ensure docker package is present
     apt:
-      name: openjdk-11-jdk
+      name: docker.io 
       state: present
+  - name: Ensure docker.io service is started and enabled
+    service:
+      name: docker
+      state: started
+      enabled: true
+  - name: Ensure openjdk-11-jre package is present
+    apt:
+      name: openjdk-11-jre
+      state: present
+  - name: Ensure openjdk-11-jre is started and enabled
+    service:
+      name: openjdk-11-jre
+      state: started
+      enabled: true
   - name: Ensure tomcat9 package is present
     apt:
       name: tomcat9
       state: present
+  - name: Ensure tomcat9 service is started and enabled
+    service:
+      name: tomcat9
+      state: started
+      enabled: true 
 
