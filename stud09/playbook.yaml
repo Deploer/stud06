@@ -1,0 +1,54 @@
+---
+- name: setup packages
+  hosts: web
+  become: true
+  tasks:
+  - name: install all packages
+    apt: name={{items}} state=present
+    with_items:
+      - maven
+      - git
+      - docker.io
+      - openjdk-11-jre
+      - tomcat9
+  
+  - name: Ensure docker.io service is started and enabled
+    service:
+      name: docker
+      state: started
+      enabled: true
+  - name: Ensure tomcat9 service is started and enabled
+    service:
+      name: tomcat9
+      state: started
+      enabled: true 
+
+- name: build and deploy application
+  hosts: web
+  become: true
+  tasks:
+  - name: Clone git repository
+    git:
+      repo: 'https://github.com/Deploer/stud06.git'
+      dest: /tmp/stud06
+  - name: Build the application
+    command:
+      cmd: mvn package -DskipTests
+      chdir: /tmp/stud06/stud08
+  - name: Ensure Tomcat webapps directory exists
+    file:
+      path: /var/lib/tomcat9/webapps
+      state: directory
+      owner: tomcat
+      group: tomcat
+      mode: '0755'
+  - name: Clear Tomcat webapps
+    ansible.builtin.command:
+      cmd: find /var/lib/tomcat9/webapps -mindepth 1 -print -delete
+    register: webapps_cleanup
+    changed_when: webapps_cleanup.stdout != ""
+  - name: Copy WAR file
+    copy:
+      src: /tmp/stud06/stud08/target/chess-1.0.war
+      dest: /var/lib/tomcat9/webapps/ROOT.war
+      remote_src: true
