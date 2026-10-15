@@ -12,16 +12,11 @@
       - openjdk-11-jre
       - tomcat9
   
-  - name: Ensure docker.io service is started and enabled
-    service:
-      name: docker
-      state: started
-      enabled: true
-  - name: Ensure tomcat9 service is started and enabled
-    service:
-      name: tomcat9
-      state: started
-      enabled: true 
+  - name: Ensure services are started and enabled
+    service: name={{items}} state=started enabled=true
+    with_items:
+      - docker
+      - tomcat9
 
 - name: build and deploy application
   hosts: web
