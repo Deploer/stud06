@@ -7,7 +7,7 @@
     source_folder: ./
     dest_folder: /var/www/html
 
-  task:
+  tasks:
     - name: nginx is present
       apt:
         name: nginx
