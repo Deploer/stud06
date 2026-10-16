@@ -1,0 +1,20 @@
+---
+- name: Ensure Tomcat webapps directory exists
+  file:
+    path: "{{ tomcat_webapps_path }}"
+    state: directory
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode: "0755"
+
+- name: Clear Tomcat webapps
+  command:
+    cmd: find {{ tomcat_webapps_path }} -mindepth 1 -print -delete
+  register: webapps_cleanup
+  changed_when: webapps_cleanup.stdout != ""
+
+- name: Copy WAR file
+  copy:
+    src: "{{ war_source }}"
+    dest: "{{ war_destination }}"
+    remote_src: true

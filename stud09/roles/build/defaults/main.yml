@@ -1,0 +1,13 @@
+---
+repository_url: https://github.com/Deploer/stud06.git
+repository_path: /tmp/stud06
+application_path: "{{ repository_path }}/stud08"
+required_packages:
+  - maven
+  - git
+  - docker.io
+  - openjdk-11-jre
+  - tomcat9
+required_services:
+  - docker
+  - tomcat9
