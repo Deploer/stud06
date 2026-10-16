@@ -3,5 +3,6 @@
   hosts: web
   become: true
   roles:
+    - install
     - build
     - deploy
