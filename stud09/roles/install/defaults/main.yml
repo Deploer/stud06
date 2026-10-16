@@ -1,0 +1,10 @@
+---
+required_packages:
+  - maven
+  - git
+  - docker.io
+  - openjdk-11-jre
+  - tomcat9
+required_services:
+  - docker
+  - tomcat9

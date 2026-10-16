@@ -1,16 +1,4 @@
 ---
-- name: Install application
-  ansible.builtin.apt:
-    name: "{{ required_packages }}"
-    state: present
-
-- name: Ensure services are started and enabled
-  ansible.builtin.service:
-    name: "{{ item }}"
-    state: started
-    enabled: true
-  with_items: "{{ required_services }}"
-
 - name: Clone git repository
   git:
     repo: "{{ repository_url }}"
