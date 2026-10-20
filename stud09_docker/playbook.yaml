@@ -1,0 +1,8 @@
+---
+- name: Build and deploy application
+  hosts: web
+  become: true
+  roles:
+    - install
+    - build
+    - deploy

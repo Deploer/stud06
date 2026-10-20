@@ -1,0 +1,10 @@
+---
+- name: Clone git repository
+  git:
+    repo: "{{ repository_url }}"
+    dest: "{{ repository_path }}"
+
+- name: Build the application
+  command:
+    cmd: mvn package -DskipTests
+    chdir: "{{ application_path }}"
