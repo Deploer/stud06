@@ -1,10 +1,7 @@
 ---
 required_packages:
-  - maven
   - git
   - docker.io
-  - openjdk-11-jre
-  - tomcat9
+  - python3-docker
 required_services:
   - docker
-  - tomcat9

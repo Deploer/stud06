@@ -1,6 +1,7 @@
 ---
-tomcat_webapps_path: /var/lib/tomcat9/webapps
-tomcat_user: tomcat
-tomcat_group: tomcat
-war_source: "{{ application_path }}/target/chess-1.0.war"
-war_destination: "{{ tomcat_webapps_path }}/ROOT.war"
+docker_image_name: chess-app
+docker_image_tag: latest
+docker_container_name: chess-app
+docker_published_ports:
+  - "8080:8080"
+docker_restart_policy: always
