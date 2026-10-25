@@ -1,0 +1,38 @@
+pipeline {
+  agent {
+
+    docker {
+      image 
+    }
+
+  }
+
+  stages {
+
+    stage('') {
+      steps {
+        
+      }
+    }
+
+    stage('') {
+      steps {
+        
+      }
+    }
+
+    stage('Make docker image') {
+      steps {
+
+      }
+    }
+
+    stage('Run docker') {
+      steps {
+        docker pull 
+	    docker-compose up -d
+      }
+    }
+  }
+  
+}
