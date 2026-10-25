@@ -15,7 +15,7 @@
 </head>
 <body>
 <div class="container">
-    <h2>Привет, гроссмейстер. Давай сыграем в шахматы</h2>
+    <h2>Привет, гроссмейстер! Давай сыграем в шахматы</h2>
     <p>Введи свое имя, preferable side and start playing!</p>
     <p style="color: red"><%=session.getAttribute("alert")%></p>
     <form method="post" action="GameServlet">
