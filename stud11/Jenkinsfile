@@ -26,9 +26,8 @@ pipeline {
 
     stage('Push and pull image') {
       steps {
-         {
+        dir('stud11') {
           sh 'docker push "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG" && docker pull "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"'
-     }
         }
       }
     }
