@@ -1,6 +1,4 @@
 FROM nexus:8081/jenkins-agent:latest
 
 USER root
-RUN apt-get update \
-    && apt-get install --yes --no-install-recommends docker.io \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y docker.io 
