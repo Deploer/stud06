@@ -1,38 +1,43 @@
 pipeline {
   agent {
-
     docker {
-      image ''
+      image 'nexus:8081/jenkins-agent-docker:latest'
+      registryUrl 'http://nexus:8081'
+      registryCredentialsId 'user'
+      args '-v /var/run/docker.sock:/var/run/docker.sock'
+      label 'slave02'
     }
+  }
 
+  environment {
+    NEXUS_REGISTRY = 'nexus:8081'
+    IMAGE_NAME = 'chess'
+    IMAGE_TAG = "${BUILD_NUMBER}"
   }
 
   stages {
-
-    stage('') {
+    stage('Build application image') {
       steps {
-        
+        dir('stud11') {
+          sh 'docker build --pull --tag "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG" .'
+        }
       }
     }
 
-    stage('') {
+    stage('Push and pull image') {
       steps {
-        
+         {
+          sh 'docker push "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG" && docker pull "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"'
+            if docker container inspect "$IMAGE_NAME" >/dev/null 2>&1; then
+              docker rm --force "$IMAGE_NAME"
+            fi
+            
+          }'''
+        }
       }
-    }
-
-    stage('Make docker image') {
-      steps {
-
-      }
-    }
-
-    stage('Run docker') {
-      steps {
-        docker pull 
-	    docker-compose up -d
+      steps ('run docker') {
+          sh 'docker run --detach --name "$IMAGE_NAME" --restart unless-stopped --publish 8080:8080 "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"'
       }
     }
   }
-  
 }
