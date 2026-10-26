@@ -28,11 +28,7 @@ pipeline {
       steps {
          {
           sh 'docker push "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG" && docker pull "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"'
-            if docker container inspect "$IMAGE_NAME" >/dev/null 2>&1; then
-              docker rm --force "$IMAGE_NAME"
-            fi
-            
-          }
+     }
         }
       }
     }
