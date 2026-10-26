@@ -24,15 +24,19 @@ pipeline {
       }
     }
 
-    stage('Push and pull image') {
+    stage('Push image') {
       steps {
         dir('stud11') {
-          sh 'docker push "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG" && docker pull "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"'
+          sh 'docker push "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"'
         }
       }
     }
     stage('Run docker') {
+      agent {
+        label 'master'
+      }
       steps {
+          sh 'docker pull "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"'
           sh 'docker rm -f "${IMAGE_NAME}" || true'
           sh 'docker run --detach --name "$IMAGE_NAME" --restart unless-stopped --publish 8080:8080 "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"'
       }
