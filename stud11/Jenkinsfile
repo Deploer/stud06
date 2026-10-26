@@ -32,9 +32,11 @@ pipeline {
               docker rm --force "$IMAGE_NAME"
             fi
             
-          }'''
+          }
         }
       }
+    }
+    stage('Run docker') {
       steps ('run docker') {
           sh 'docker run --detach --name "$IMAGE_NAME" --restart unless-stopped --publish 8080:8080 "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"'
       }
