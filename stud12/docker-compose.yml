@@ -25,12 +25,5 @@ services:
       MYSQL_PASSWORD: password
     volumes:
       - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\""]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 30s
-
 volumes:
   mysql_data:
