@@ -7,4 +7,5 @@ RUN mvn package -DskipTests
 FROM tomcat:9-jre8-temurin-jammy
 RUN rm -rf /usr/local/tomcat/webapps/*
 COPY --from=builder /build/target/*.war /usr/local/tomcat/webapps/ROOT.war
+COPY WebContent/Config.properties /usr/local/tomcat/ROOT/Config.properties
 EXPOSE 8080
