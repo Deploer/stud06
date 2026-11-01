@@ -1,0 +1,118 @@
+---
+- name: Create build node
+  amazon.aws.ec2_instance:
+    name: chess-build
+    image_id: "chess-build"
+    instance_type: c5.large
+    key_name: "prod-ssh-key"
+    vpc_subnet_id: subnet-5ca1ab1e
+    security_group: default
+    network:
+      assign_public_ip: true
+    state: running
+    wait: true
+    tags:
+      Project: chess-app
+
+- name: Create deploy node
+  amazon.aws.ec2_instance:
+    name: chess-deploy
+    image_id: "chess-deploy"
+    instance_type: c5.large
+    key_name: "prod-ssh-key"
+    vpc_subnet_id: subnet-5ca1ab1e
+    security_group: default
+    network:
+      assign_public_ip: true
+    state: running
+    wait: true
+    tags:
+      Project: chess-app
+
+- name: Add build host
+  ansible.builtin.add_host:
+    name: build_node
+    groups: build_nodes
+    ansible_host: "{{ chess_build.instances[0].public_ip_address }}"
+    ansible_user: user
+
+- name: Add deploy host
+  ansible.builtin.add_host:
+    name: deploy_node
+    groups: deployment_nodes
+    ansible_host: "{{ chess_deploy.instances[0].public_ip_address }}"
+    ansible_user: user
+
+- name: Build Java app
+  hosts: build_nodes
+  become: true
+  tasks:
+    - name: Install java and maven
+      ansible.builtin.apt:
+        name:
+          - openjdk-11-jdk
+          - maven
+          - git
+        state: present
+    - name: Create the application build directory
+      ansible.builtin.file:
+        path: /opt/chess
+        state: directory
+        mode: "0755"
+    - name: Clone git repository
+      git:
+        repo: 'https://github.com/Deploer/stud06.git'
+        dest: /tmp/stud06
+         
+    - name: Copy the Maven project to the build instance
+      ansible.builtin.copy:
+        src: "/tmp/stud06/stud13"
+        dest: "/opt/chess/"
+        mode: preserve
+      loop:
+        - pom.xml
+        - src
+
+    - name: Build the war
+      ansible.builtin.command:
+        cmd: mvn --batch-mode package -DskipTests
+        chdir: /opt/chess
+
+    - name: Create a temp dir
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: chess-artifact
+      delegate_to: localhost
+      become: false
+      register: artifact_staging
+
+    - name: Fetch the war from the build instance
+      ansible.builtin.fetch:
+        src: /opt/chess/target/chess-1.0.war
+        dest: "{{ artifact_staging.path }}/"
+        flat: true
+
+- name: Deploy and start the application on the production instance
+  hosts: deployment_nodes
+  become: true
+  tasks:
+    - name: install java and tomcat
+      ansible.builtin.apt:
+        name:
+          - openjdk-11-jdk
+          - tomcat9
+        state: present
+        update_cache: true
+    - name: Tomcat is enabled and running
+      ansible.builtin.service:
+        name: tomcat9
+        state: started
+        enabled: true
+
+    - name: Copy war to Tomcat
+      ansible.builtin.copy:
+        src: "{{ hostvars['build_node']['artifact_staging']['path'] }}/chess-1.0.war"
+        dest: /var/lib/tomcat9/webapps/ROOT.war
+        owner: tomcat
+        group: tomcat
+        mode: "0644"
