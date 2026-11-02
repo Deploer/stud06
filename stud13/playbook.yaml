@@ -33,6 +33,7 @@
   ansible.builtin.add_host:
     name: build_node
     groups: build_nodes
+    register: chess_build
     ansible_host: "{{ chess_build.instances[0].public_ip_address }}"
     ansible_user: user
 
@@ -40,6 +41,7 @@
   ansible.builtin.add_host:
     name: deploy_node
     groups: deployment_nodes
+    register: chess_deploy
     ansible_host: "{{ chess_deploy.instances[0].public_ip_address }}"
     ansible_user: user
 
