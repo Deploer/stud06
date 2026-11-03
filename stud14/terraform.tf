@@ -23,8 +23,12 @@ terraform {
 }
 
 provider "yandex" {
-  zone = "ru-central1-d"
+  service_account_key_file = "/root/key.json"   # путь к вашему key.json
+  cloud_id  = "b1gh268nmke9btt81pou"
+  folder_id = "b1gslld5kk9vkm5u7prh"
+  zone = "ru-central1-a"
 }
+
 
 
 resource "yandex_compute_image" "ubuntu_2004" {
@@ -33,25 +37,25 @@ resource "yandex_compute_image" "ubuntu_2004" {
 
 resource "yandex_compute_disk" "boot-disk-vm1" {
   name     = "boot-disk-1"
-  type     = "network-ssd"
-  zone     = "ru-central1-d"
-  size     = "20"
+  type     = "network-hdd"
+  zone     = "ru-central1-a"
+  size     = "10"
   image_id = yandex_compute_image.ubuntu_2004.id
 }
 
 resource "yandex_compute_disk" "boot-disk-vm2" {
   name     = "boot-disk-2"
   type     = "network-hdd"
-  zone     = "ru-central1-d"
-  size     = "20"
+  zone     = "ru-central1-a"
+  size     = "10"
   image_id = yandex_compute_image.ubuntu_2004.id
 }
 
 resource "yandex_compute_instance" "vm-1" {
-  name = "build"
-  platform_id = "standard-v3"
+  name = "terraform1"
+  platform_id = "standard-v1"
   resources {
-    cores  = 2
+    cores  = 1
     memory = 2
   }
 
@@ -70,10 +74,10 @@ resource "yandex_compute_instance" "vm-1" {
 }
 
 resource "yandex_compute_instance" "vm-2" {
-  name = "deploy"
-  platform_id = "standard-v3"
+  name = "terraform2"
+  platform_id = "standard-v1"
   resources {
-    cores  = 2
+    cores  = 1
     memory = 2
   }
 
@@ -97,7 +101,7 @@ resource "yandex_vpc_network" "network-1" {
 
 resource "yandex_vpc_subnet" "subnet-1" {
   name           = "subnet1"
-  zone           = "ru-central1-d"
+  zone           = "ru-central1-a"
   network_id     = yandex_vpc_network.network-1.id
   v4_cidr_blocks = ["192.168.10.0/24"]
 }
