@@ -23,7 +23,7 @@ terraform {
 }
 
 provider "yandex" {
-  zone = "ru-central1-b"
+  zone = "ru-central1-d"
 }
 
 
@@ -34,7 +34,7 @@ resource "yandex_compute_image" "ubuntu_2004" {
 resource "yandex_compute_disk" "boot-disk-vm1" {
   name     = "boot-disk-1"
   type     = "network-ssd"
-  zone     = "ru-central1-b"
+  zone     = "ru-central1-d"
   size     = "20"
   image_id = yandex_compute_image.ubuntu_2004.id
 }
@@ -42,14 +42,14 @@ resource "yandex_compute_disk" "boot-disk-vm1" {
 resource "yandex_compute_disk" "boot-disk-vm2" {
   name     = "boot-disk-2"
   type     = "network-hdd"
-  zone     = "ru-central1-b"
+  zone     = "ru-central1-d"
   size     = "20"
   image_id = yandex_compute_image.ubuntu_2004.id
 }
 
 resource "yandex_compute_instance" "vm-1" {
-  name = "terraform1"
-
+  name = "build"
+  platform_id = "standard-v3"
   resources {
     cores  = 2
     memory = 2
@@ -70,11 +70,11 @@ resource "yandex_compute_instance" "vm-1" {
 }
 
 resource "yandex_compute_instance" "vm-2" {
-  name = "terraform2"
-
+  name = "deploy"
+  platform_id = "standard-v3"
   resources {
     cores  = 2
-    memory = 4
+    memory = 2
   }
 
   boot_disk {
