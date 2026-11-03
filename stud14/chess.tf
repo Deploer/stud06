@@ -4,69 +4,118 @@ terraform {
       source = "yandex-cloud/yandex"
     }
   }
-  required_version = ">= 0.13"
+
+  backend "s3" {
+    endpoints = {
+      s3 = "https://storage.yandexcloud.net"
+    }
+    bucket = "<имя_бакета>"
+    region = "ru-central1"
+    key    = "<путь_к_файлу_состояния_в_бакете>/<имя_файла_состояния>.tfstate"
+
+    skip_region_validation      = true
+    skip_credentials_validation = true
+    skip_requesting_account_id  = true # необходимая опция при описании бэкенда для Terraform версии 1.6.1 и старше.
+    skip_s3_checksum            = true # необходимая опция при описании бэкенда для Terraform версии 1.6.3 и старше.
+
+  }
 }
 
 provider "yandex" {
-  cloud_id    = local.cloud_id
-  folder_id   = local.folder_id
+  zone      = "ru-central1-d"
 }
 
-locals {
-  cloud_id    = "b1gh268nmke9btt81pou"
-  folder_id   = "b1gslld5kk9vkm5u7prh"
-  zone        = "ru-central1-a"
-  cidr        = "192.168.1.0/24"
+resource "yandex_compute_image" "ubuntu_2004" {
+  source_family = "ubuntu-2004-lts"
 }
 
-# Создание сети
-
-resource "yandex_vpc_network" "coi-instance-network" {
-  name = "sample-network"
+resource "yandex_compute_disk" "boot-disk-vm1" {
+  name     = "boot-disk-1"
+  type     = "network-hdd"
+  zone     = "ru-central1-d"
+  size     = "20"
+  image_id = yandex_compute_image.ubuntu_2004.id
 }
 
-# Создание подсети
-
-resource "yandex_vpc_subnet" "coi-instance-subnet-d" {
-  name           = "sample-network-subnet"
-  zone           = local.zone
-  network_id     = yandex_vpc_network.coi-instance-network.id
-  v4_cidr_blocks = [local.cidr]
+resource "yandex_compute_disk" "boot-disk-vm2" {
+  name     = "boot-disk-2"
+  type     = "network-hdd"
+  zone     = "ru-central1-d"
+  size     = "20"
+  image_id = yandex_compute_image.ubuntu_2004.id
 }
 
-# Создание группы безопасности
+resource "yandex_compute_instance" "vm-1" {
+  name = "terraform1"
 
-resource "yandex_vpc_security_group" "coi-instance-sg" {
-  name        = "sample-sg"
-  network_id  = yandex_vpc_network.coi-instance-network.id
-
-  ingress {
-    protocol       = "TCP"
-    description    = "http"
-    v4_cidr_blocks = ["0.0.0.0/0"]
-    port           = 80
+  resources {
+    cores  = 2
+    memory = 2
   }
 
-  ingress {
-    protocol       = "TCP"
-    description    = "https"
-    v4_cidr_blocks = ["0.0.0.0/0"]
-    port           = 443
+  boot_disk {
+    disk_id = yandex_compute_disk.boot-disk-vm1.id
   }
 
-  ingress {
-    protocol       = "TCP"
-    description    = "ssh"
-    v4_cidr_blocks = ["0.0.0.0/0"]
-    port           = 22
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet-1.id
+    nat       = true
   }
 
-  egress {
-    protocol       = "ANY"
-    description    = "any"
-    v4_cidr_blocks = ["0.0.0.0/0"]
-    from_port      = 0
-    to_port        = 65535
+  metadata = {
+    ssh-keys = "ubuntu:${file("<путь_к_публичному_SSH-ключу>")}"
   }
 }
 
+resource "yandex_compute_instance" "vm-2" {
+  name = "terraform2"
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    disk_id = yandex_compute_disk.boot-disk-vm2.id
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet-1.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("<путь_к_публичному_SSH-ключу>")}"
+  }
+}
+
+resource "yandex_vpc_network" "network-1" {
+  name = "network1"
+}
+
+resource "yandex_vpc_subnet" "subnet-1" {
+  name           = "subnet1"
+  zone           = "ru-central1-d"
+  network_id     = yandex_vpc_network.network-1.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+output "internal_ip_address_vm_1" {
+  value = yandex_compute_instance.vm-1.network_interface.0.ip_address
+}
+
+output "internal_ip_address_vm_2" {
+  value = yandex_compute_instance.vm-2.network_interface.0.ip_address
+}
+
+output "external_ip_address_vm_1" {
+  value = yandex_compute_instance.vm-1.network_interface.0.nat_ip_address
+}
+
+output "external_ip_address_vm_2" {
+  value = yandex_compute_instance.vm-2.network_interface.0.nat_ip_address
+}
+
+output "subnet-1" {
+  value = yandex_vpc_subnet.subnet-1.id
+}
