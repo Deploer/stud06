@@ -41,23 +41,23 @@ resource "yandex_compute_disk" "boot-disk-vm1" {
   image_id = yandex_compute_image.ubuntu_2004.id
 }
 
-# Диск ВМ2 — зона f
+# Диск ВМ2 — зона d
 resource "yandex_compute_disk" "boot-disk-vm2" {
   name     = "boot-disk-2"
   type     = "network-hdd"
-  zone     = "ru-central1-f"
+  zone     = "ru-central1-d"
   size     = "10"
   image_id = yandex_compute_image.ubuntu_2004.id
 }
 
-# ВМ1 — зона e, подсеть subnet-1
+# ВМ1
 resource "yandex_compute_instance" "vm-1" {
   name        = "terraform1"
   platform_id = "standard-v3"
   zone        = "ru-central1-e"
 
   resources {
-    cores  = 1
+    cores  = 2
     memory = 2
   }
 
@@ -75,14 +75,14 @@ resource "yandex_compute_instance" "vm-1" {
   }
 }
 
-# ВМ2 — зона f, подсеть subnet-2
+# ВМ2
 resource "yandex_compute_instance" "vm-2" {
   name        = "terraform2"
   platform_id = "standard-v3"
-  zone        = "ru-central1-f"
+  zone        = "ru-central1-d"
 
   resources {
-    cores  = 1
+    cores  = 2
     memory = 2
   }
 
@@ -115,7 +115,7 @@ resource "yandex_vpc_subnet" "subnet-1" {
 # Подсеть для вм2
 resource "yandex_vpc_subnet" "subnet-2" {
   name           = "subnet2"
-  zone           = "ru-central1-f"
+  zone           = "ru-central1-d"
   network_id     = yandex_vpc_network.network-1.id
   v4_cidr_blocks = ["192.168.20.0/24"]
 }

@@ -1,3 +1,5 @@
+#не рабочий вариант
+
 terraform {
   required_providers {
     yandex = {
