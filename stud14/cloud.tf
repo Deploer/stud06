@@ -65,6 +65,10 @@ resource "yandex_compute_instance" "vm-1" {
     memory = 2
   }
 
+  service_account_id = yandex_iam_service_account.registry_builder.id
+
+  depends_on = [yandex_resourcemanager_folder_iam_member.registry_builder_pusher]
+
   boot_disk {
     disk_id = yandex_compute_disk.boot-disk-vm1.id
   }
@@ -89,6 +93,10 @@ resource "yandex_compute_instance" "vm-2" {
     cores  = 2
     memory = 2
   }
+
+  service_account_id = yandex_iam_service_account.registry_runtime.id
+
+  depends_on = [yandex_resourcemanager_folder_iam_member.registry_runtime_puller]
 
   boot_disk {
     disk_id = yandex_compute_disk.boot-disk-vm2.id
@@ -124,41 +132,59 @@ resource "yandex_vpc_subnet" "subnet-2" {
   v4_cidr_blocks = ["192.168.20.0/24"]
 }
 
-variable "dockerhub_username" {
-  type = string
-  default = "deploer"
+resource "yandex_container_registry" "chess" {
+  name      = "chess-registry"
+  folder_id = "b1gslld5kk9vkm5u7prh"
 }
 
-variable "dockerhub_repository" {
-  type    = string
-  default = "chess"
+resource "yandex_container_repository" "chess" {
+  name = "${yandex_container_registry.chess.id}/chess"
 }
 
-variable "dockerhub_token" {
-  type      = string
-  sensitive = true
-  
+resource "yandex_iam_service_account" "registry_builder" {
+  name      = "chess-image-builder"
+  folder_id = "b1gslld5kk9vkm5u7prh"
 }
 
-variable "dockerhub_image_tag" {
+resource "yandex_resourcemanager_folder_iam_member" "registry_builder_pusher" {
+  folder_id = "b1gslld5kk9vkm5u7prh"
+  role      = "container-registry.images.pusher"
+  member    = "serviceAccount:${yandex_iam_service_account.registry_builder.id}"
+}
+
+resource "yandex_iam_service_account" "registry_runtime" {
+  name      = "chess-image-runtime"
+  folder_id = "b1gslld5kk9vkm5u7prh"
+}
+
+resource "yandex_resourcemanager_folder_iam_member" "registry_runtime_puller" {
+  folder_id = "b1gslld5kk9vkm5u7prh"
+  role      = "container-registry.images.puller"
+  member    = "serviceAccount:${yandex_iam_service_account.registry_runtime.id}"
+}
+
+variable "container_image_tag" {
   type    = string
   default = "latest"
 }
 
+variable "git_ref" {
+  type    = string
+  default = "main"
+}
+
 locals {
-  docker_image = "${var.dockerhub_username}/${var.dockerhub_repository}:${var.dockerhub_image_tag}"
-  source_hash = sha256(join("", [
-    filesha256("${path.module}/Dockerfile"),
-    filesha256("${path.module}/pom.xml"),
-    join("", [for file in sort(fileset("${path.module}/src", "**")) : filesha256("${path.module}/src/${file}")])
-  ]))
+  docker_image = "cr.yandex/${yandex_container_registry.chess.id}/chess:${var.container_image_tag}"
 }
 
 resource "null_resource" "build_and_push_image" {
+  depends_on = [yandex_container_repository.chess]
+
   triggers = {
-    source_hash = local.source_hash
     builder_id  = yandex_compute_instance.vm-1.id
     image       = local.docker_image
+    repository  = yandex_container_repository.chess.id
+    git_ref     = var.git_ref
   }
 
   connection {
@@ -171,38 +197,17 @@ resource "null_resource" "build_and_push_image" {
   provisioner "remote-exec" {
     inline = [
       "sudo apt-get update",
-      "sudo apt-get install -y docker.io",
+      "sudo apt-get install -y docker.io curl python3 git",
       "sudo systemctl enable --now docker",
-      "mkdir -p /home/ubuntu/app/src"
+      "sudo rm -rf /home/ubuntu/stud06",
+      "git clone --depth 1 --branch '${var.git_ref}' https://github.com/Deploer/stud06.git /home/ubuntu/stud06"
     ]
-  }
-
-  provisioner "file" {
-    source      = "${path.module}/Dockerfile"
-    destination = "/home/ubuntu/app/Dockerfile"
-  }
-
-  provisioner "file" {
-    source      = "${path.module}/pom.xml"
-    destination = "/home/ubuntu/app/pom.xml"
-  }
-
-  provisioner "file" {
-    source      = "${path.module}/src"
-    destination = "/home/ubuntu/app/src"
-  }
-
-  provisioner "file" {
-    content     = var.dockerhub_token
-    destination = "/home/ubuntu/.dockerhub_token"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "chmod 600 /home/ubuntu/.dockerhub_token",
-      "sudo docker login --username '${var.dockerhub_username}' --password-stdin < /home/ubuntu/.dockerhub_token || { rm -f /home/ubuntu/.dockerhub_token; exit 1; }",
-      "rm -f /home/ubuntu/.dockerhub_token",
-      "sudo docker build --pull --tag '${local.docker_image}' /home/ubuntu/app",
+      "REGISTRY_TOKEN=$(curl --fail --silent --show-error -H 'Metadata-Flavor: Google' 'http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token' | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"access_token\"])') && printf '%s' \"$REGISTRY_TOKEN\" | sudo docker login --username iam --password-stdin cr.yandex",
+      "sudo docker build --pull --tag '${local.docker_image}' /home/ubuntu/stud06/stud14",
       "sudo docker push '${local.docker_image}'",
       "sudo docker logout"
     ]
@@ -228,21 +233,14 @@ resource "null_resource" "run_container" {
   provisioner "remote-exec" {
     inline = [
       "sudo apt-get update",
-      "sudo apt-get install -y docker.io",
+      "sudo apt-get install -y docker.io curl python3",
       "sudo systemctl enable --now docker"
     ]
   }
 
-  provisioner "file" {
-    content     = var.dockerhub_token
-    destination = "/home/ubuntu/.dockerhub_token"
-  }
-
   provisioner "remote-exec" {
     inline = [
-      "chmod 600 /home/ubuntu/.dockerhub_token",
-      "sudo docker login --username '${var.dockerhub_username}' --password-stdin < /home/ubuntu/.dockerhub_token || { rm -f /home/ubuntu/.dockerhub_token; exit 1; }",
-      "rm -f /home/ubuntu/.dockerhub_token",
+      "REGISTRY_TOKEN=$(curl --fail --silent --show-error -H 'Metadata-Flavor: Google' 'http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token' | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"access_token\"])') && printf '%s' \"$REGISTRY_TOKEN\" | sudo docker login --username iam --password-stdin cr.yandex",
       "sudo docker pull '${local.docker_image}'",
       "sudo docker rm -f chess || true",
       "sudo docker run --detach --name chess --restart unless-stopped --publish 8080:8080 '${local.docker_image}'",
