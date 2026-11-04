@@ -3,6 +3,10 @@ terraform {
     yandex = {
       source = "yandex-cloud/yandex"
     }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.2"
+    }
   }
   required_version = ">= 0.13"
 
@@ -118,6 +122,133 @@ resource "yandex_vpc_subnet" "subnet-2" {
   zone           = "ru-central1-d"
   network_id     = yandex_vpc_network.network-1.id
   v4_cidr_blocks = ["192.168.20.0/24"]
+}
+
+variable "dockerhub_username" {
+  type = string
+  default = "deploer"
+}
+
+variable "dockerhub_repository" {
+  type    = string
+  default = "chess"
+}
+
+variable "dockerhub_token" {
+  type      = string
+  sensitive = true
+  
+}
+
+variable "dockerhub_image_tag" {
+  type    = string
+  default = "latest"
+}
+
+locals {
+  docker_image = "${var.dockerhub_username}/${var.dockerhub_repository}:${var.dockerhub_image_tag}"
+  source_hash = sha256(join("", [
+    filesha256("${path.module}/Dockerfile"),
+    filesha256("${path.module}/pom.xml"),
+    join("", [for file in sort(fileset("${path.module}/src", "**")) : filesha256("${path.module}/src/${file}")])
+  ]))
+}
+
+resource "null_resource" "build_and_push_image" {
+  triggers = {
+    source_hash = local.source_hash
+    builder_id  = yandex_compute_instance.vm-1.id
+    image       = local.docker_image
+  }
+
+  connection {
+    type        = "ssh"
+    host        = yandex_compute_instance.vm-1.network_interface[0].nat_ip_address
+    user        = "ubuntu"
+    private_key = file("/root/.ssh/id_ed25519")
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y docker.io",
+      "sudo systemctl enable --now docker",
+      "mkdir -p /home/ubuntu/app/src"
+    ]
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/Dockerfile"
+    destination = "/home/ubuntu/app/Dockerfile"
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/pom.xml"
+    destination = "/home/ubuntu/app/pom.xml"
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/src"
+    destination = "/home/ubuntu/app/src"
+  }
+
+  provisioner "file" {
+    content     = var.dockerhub_token
+    destination = "/home/ubuntu/.dockerhub_token"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 600 /home/ubuntu/.dockerhub_token",
+      "sudo docker login --username '${var.dockerhub_username}' --password-stdin < /home/ubuntu/.dockerhub_token || { rm -f /home/ubuntu/.dockerhub_token; exit 1; }",
+      "rm -f /home/ubuntu/.dockerhub_token",
+      "sudo docker build --pull --tag '${local.docker_image}' /home/ubuntu/app",
+      "sudo docker push '${local.docker_image}'",
+      "sudo docker logout"
+    ]
+  }
+}
+
+resource "null_resource" "run_container" {
+  depends_on = [null_resource.build_and_push_image]
+
+  triggers = {
+    image  = local.docker_image
+    build  = null_resource.build_and_push_image.id
+    vm_id  = yandex_compute_instance.vm-2.id
+  }
+
+  connection {
+    type        = "ssh"
+    host        = yandex_compute_instance.vm-2.network_interface[0].nat_ip_address
+    user        = "ubuntu"
+    private_key = file("/root/.ssh/id_ed25519")
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y docker.io",
+      "sudo systemctl enable --now docker"
+    ]
+  }
+
+  provisioner "file" {
+    content     = var.dockerhub_token
+    destination = "/home/ubuntu/.dockerhub_token"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 600 /home/ubuntu/.dockerhub_token",
+      "sudo docker login --username '${var.dockerhub_username}' --password-stdin < /home/ubuntu/.dockerhub_token || { rm -f /home/ubuntu/.dockerhub_token; exit 1; }",
+      "rm -f /home/ubuntu/.dockerhub_token",
+      "sudo docker pull '${local.docker_image}'",
+      "sudo docker rm -f chess || true",
+      "sudo docker run --detach --name chess --restart unless-stopped --publish 8080:8080 '${local.docker_image}'",
+      "sudo docker logout"
+    ]
+  }
 }
 
 output "internal_ip_address_vm_1" {
