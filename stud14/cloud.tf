@@ -65,9 +65,7 @@ resource "yandex_compute_instance" "vm-1" {
     memory = 2
   }
 
-  service_account_id = yandex_iam_service_account.registry_builder.id
-
-  depends_on = [yandex_resourcemanager_folder_iam_member.registry_builder_pusher]
+  service_account_id = local.provider_service_account_id
 
   boot_disk {
     disk_id = yandex_compute_disk.boot-disk-vm1.id
@@ -94,9 +92,7 @@ resource "yandex_compute_instance" "vm-2" {
     memory = 2
   }
 
-  service_account_id = yandex_iam_service_account.registry_runtime.id
-
-  depends_on = [yandex_resourcemanager_folder_iam_member.registry_runtime_puller]
+  service_account_id = local.provider_service_account_id
 
   boot_disk {
     disk_id = yandex_compute_disk.boot-disk-vm2.id
@@ -141,27 +137,6 @@ resource "yandex_container_repository" "chess" {
   name = "${yandex_container_registry.chess.id}/chess"
 }
 
-resource "yandex_iam_service_account" "registry_builder" {
-  name      = "chess-image-builder"
-  folder_id = "b1gslld5kk9vkm5u7prh"
-}
-
-resource "yandex_resourcemanager_folder_iam_member" "registry_builder_pusher" {
-  folder_id = "b1gslld5kk9vkm5u7prh"
-  role      = "container-registry.images.pusher"
-  member    = "serviceAccount:${yandex_iam_service_account.registry_builder.id}"
-}
-
-resource "yandex_iam_service_account" "registry_runtime" {
-  name      = "chess-image-runtime"
-  folder_id = "b1gslld5kk9vkm5u7prh"
-}
-
-resource "yandex_resourcemanager_folder_iam_member" "registry_runtime_puller" {
-  folder_id = "b1gslld5kk9vkm5u7prh"
-  role      = "container-registry.images.puller"
-  member    = "serviceAccount:${yandex_iam_service_account.registry_runtime.id}"
-}
 
 variable "container_image_tag" {
   type    = string
@@ -174,6 +149,7 @@ variable "git_ref" {
 }
 
 locals {
+  provider_service_account_id = jsondecode(file("/root/key.json")).service_account_id
   docker_image = "cr.yandex/${yandex_container_registry.chess.id}/chess:${var.container_image_tag}"
 }
 
