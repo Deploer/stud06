@@ -9,7 +9,7 @@ terraform {
     }
   }
   required_version = ">= 0.13"
-  
+
   backend "s3" {
     endpoints = {
       s3 = "https://storage.yandexcloud.net"
@@ -33,7 +33,7 @@ provider "yandex" {
 }
 
 resource "yandex_compute_image" "ubuntu_2004" {
-  source_family = "ubuntu-2004-lts"
+  source_family = "ubuntu-2404-lts"
 }
 
 # Диск ВМ1 — зона e
@@ -48,7 +48,7 @@ resource "yandex_compute_disk" "boot-disk-vm1" {
 
 # ВМ1
 resource "yandex_compute_instance" "vm-1" {
-  name        = "terraform1"
+  name        = "vm1"
   platform_id = "standard-v3"
   zone        = "ru-central1-e"
 
@@ -56,8 +56,6 @@ resource "yandex_compute_instance" "vm-1" {
     cores  = 2
     memory = 2
   }
-
-  service_account_id = local.provider_service_account_id
 
   boot_disk {
     disk_id = yandex_compute_disk.boot-disk-vm1.id
